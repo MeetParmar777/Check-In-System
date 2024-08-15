@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Check-In and Break Time Tracker</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      margin: 0;
+    }
+
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    #currentDate {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background-color: #6200ea;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      margin: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+
+    button:disabled {
+      background-color: #bbb;
+      cursor: not-allowed;
+    }
+
+    #output {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    .time-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .time-container p {
+      margin: 8px 0;
+      font-size: 18px;
+      color: #555;
+    }
+
+    @media (max-width: 600px) {
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Daily Time Tracker</h1>
+    <div id="currentDate"></div> <!-- Today's date will be displayed here -->
+    
+    <div class="time-container">
+      <p><strong>Check-in Time:</strong> <span id="checkInTime">Not Set</span></p>
+      <p><strong>Check-out Time:</strong> <span id="checkOutTime">Not Set</span></p>
+      <p><strong>Break-in Time:</strong> <span id="breakInTime">Not Set</span></p>
+      <p><strong>Break-out Time:</strong> <span id="breakOutTime">Not Set</span></p>
+      <p><strong>Total Work Time:</strong> <span id="workTime">0 hrs</span></p>
+      <p><strong>Total Break Time:</strong> <span id="breakTime">0 hrs</span></p>
+    </div>
+    
+    <button id="checkInBtn" onclick="checkIn()">Check In</button>
+    <button id="breakInBtn" onclick="breakIn()">Break In</button>
+    <button id="breakOutBtn" onclick="breakOut()">Break Out</button>
+    <button id="checkOutBtn" onclick="checkOut()">Check Out</button>
+    
+    <div id="output"></div>
+  </div>
+
+  <script>
+    let checkInTime, checkOutTime, breakInTime, breakOutTime, totalWorkTime, totalBreakTime;
+
+    function formatTime(date) {
+      let hours = date.getHours();
+      let minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // If hour is 0, set to 12 (for 12 AM/PM)
+      minutes = minutes < 10 ? '0' + minutes : minutes;
+      return hours + ':' + minutes + ' ' + ampm;
+    }
+
+    function calculateTimeDifference(startTime, endTime) {
+      return Math.abs(endTime - startTime) / (1000 * 60 * 60); // Time in hours
+    }
+
+    function disableButton(id) {
+      document.getElementById(id).disabled = true;
+      localStorage.setItem(id, true);
+    }
+
+    function checkIn() {
+      checkInTime = new Date();
+      document.getElementById('checkInTime').innerText = formatTime(checkInTime);
+      document.getElementById('output').innerText = 'Checked in at ' + formatTime(checkInTime);
+      disableButton('checkInBtn');
+    }
+
+    function breakIn() {
+      if (!checkInTime) {
+        alert("You need to check in first!");
+        return;
+      }
+      breakInTime = new Date();
+      document.getElementById('breakInTime').innerText = formatTime(breakInTime);
+      document.getElementById('output').innerText = 'Break started at ' + formatTime(breakInTime);
+      disableButton('breakInBtn');
+    }
+
+    function breakOut() {
+      if (!breakInTime) {
+        alert("You need to start a break first!");
+        return;
+      }
+      breakOutTime = new Date();
+      document.getElementById('breakOutTime').innerText = formatTime(breakOutTime);
+      const breakHours = calculateTimeDifference(breakInTime, breakOutTime);
+      totalBreakTime = (totalBreakTime || 0) + breakHours;
+      document.getElementById('breakTime').innerText = totalBreakTime.toFixed(2) + ' hrs';
+      document.getElementById('output').innerText = 'Break ended at ' + formatTime(breakOutTime);
+      disableButton('breakOutBtn');
+    }
+
+    function checkOut() {
+      if (!checkInTime) {
+        alert("You need to check in first!");
+        return;
+      }
+      checkOutTime = new Date();
+      document.getElementById('checkOutTime').innerText = formatTime(checkOutTime);
+      const workHours = calculateTimeDifference(checkInTime, checkOutTime);
+      totalWorkTime = (totalWorkTime || 0) + workHours - (totalBreakTime || 0);
+      document.getElementById('workTime').innerText = totalWorkTime.toFixed(2) + ' hrs';
+      document.getElementById('output').innerText = 'Checked out at ' + formatTime(checkOutTime);
+      disableButton('checkOutBtn');
+    }
+
+    function displayCurrentDate() {
+      const currentDate = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('currentDate').innerText = currentDate.toLocaleDateString('en-US', options);
+    }
+
+    function checkNextDay() {
+      const lastAccessDate = localStorage.getItem('lastAccessDate');
+      const today = new Date().toDateString();
+      
+      if (!lastAccessDate || lastAccessDate !== today) {
+        localStorage.setItem('lastAccessDate', today);
+        resetButtons();
+      }
+    }
+
+    function resetButtons() {
+      const buttons = ['checkInBtn', 'breakInBtn', 'breakOutBtn', 'checkOutBtn'];
+      buttons.forEach(buttonId => {
+        document.getElementById(buttonId).disabled = false;
+        localStorage.removeItem(buttonId);
+      });
+    }
+
+    function initializeButtons() {
+      checkNextDay();
+      const buttons = ['checkInBtn', 'breakInBtn', 'breakOutBtn', 'checkOutBtn'];
+      buttons.forEach(buttonId => {
+        if (localStorage.getItem(buttonId)) {
+          document.getElementById(buttonId).disabled = true;
+        }
+      });
+    }
+
+    // Initialize buttons and display current date on page load
+    window.onload = function() {
+      initializeButtons();
+      displayCurrentDate();
+    };
+  </script>
+</body>
+</html>
