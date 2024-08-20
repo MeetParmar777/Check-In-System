@@ -121,9 +121,19 @@
       localStorage.setItem(id, true);
     }
 
+    function saveTime(key, time) {
+      localStorage.setItem(key, time.toString());
+    }
+
+    function getTime(key) {
+      const timeString = localStorage.getItem(key);
+      return timeString ? new Date(timeString) : null;
+    }
+
     function checkIn() {
       checkInTime = new Date();
       document.getElementById('checkInTime').innerText = formatTime(checkInTime);
+      saveTime('checkInTime', checkInTime);
       document.getElementById('output').innerText = 'Checked in at ' + formatTime(checkInTime);
       disableButton('checkInBtn');
     }
@@ -135,6 +145,7 @@
       }
       breakInTime = new Date();
       document.getElementById('breakInTime').innerText = formatTime(breakInTime);
+      saveTime('breakInTime', breakInTime);
       document.getElementById('output').innerText = 'Break started at ' + formatTime(breakInTime);
       disableButton('breakInBtn');
     }
@@ -149,6 +160,7 @@
       const breakHours = calculateTimeDifference(breakInTime, breakOutTime);
       totalBreakTime = (totalBreakTime || 0) + breakHours;
       document.getElementById('breakTime').innerText = totalBreakTime.toFixed(2) + ' hrs';
+      saveTime('breakOutTime', breakOutTime);
       document.getElementById('output').innerText = 'Break ended at ' + formatTime(breakOutTime);
       disableButton('breakOutBtn');
     }
@@ -163,6 +175,7 @@
       const workHours = calculateTimeDifference(checkInTime, checkOutTime);
       totalWorkTime = (totalWorkTime || 0) + workHours - (totalBreakTime || 0);
       document.getElementById('workTime').innerText = totalWorkTime.toFixed(2) + ' hrs';
+      saveTime('checkOutTime', checkOutTime);
       document.getElementById('output').innerText = 'Checked out at ' + formatTime(checkOutTime);
       disableButton('checkOutBtn');
     }
@@ -189,6 +202,10 @@
         document.getElementById(buttonId).disabled = false;
         localStorage.removeItem(buttonId);
       });
+      localStorage.removeItem('checkInTime');
+      localStorage.removeItem('breakInTime');
+      localStorage.removeItem('breakOutTime');
+      localStorage.removeItem('checkOutTime');
     }
 
     function initializeButtons() {
@@ -201,9 +218,38 @@
       });
     }
 
-    // Initialize buttons and display current date on page load
+    function loadTimes() {
+      const storedCheckInTime = getTime('checkInTime');
+      const storedBreakInTime = getTime('breakInTime');
+      const storedBreakOutTime = getTime('breakOutTime');
+      const storedCheckOutTime = getTime('checkOutTime');
+      
+      if (storedCheckInTime) {
+        checkInTime = storedCheckInTime;
+        document.getElementById('checkInTime').innerText = formatTime(checkInTime);
+      }
+      if (storedBreakInTime) {
+        breakInTime = storedBreakInTime;
+        document.getElementById('breakInTime').innerText = formatTime(breakInTime);
+      }
+      if (storedBreakOutTime) {
+        breakOutTime = storedBreakOutTime;
+        document.getElementById('breakOutTime').innerText = formatTime(breakOutTime);
+        totalBreakTime = calculateTimeDifference(breakInTime, breakOutTime);
+        document.getElementById('breakTime').innerText = totalBreakTime.toFixed(2) + ' hrs';
+      }
+      if (storedCheckOutTime) {
+        checkOutTime = storedCheckOutTime;
+        document.getElementById('checkOutTime').innerText = formatTime(checkOutTime);
+        totalWorkTime = calculateTimeDifference(checkInTime, checkOutTime) - (totalBreakTime || 0);
+        document.getElementById('workTime').innerText = totalWorkTime.toFixed(2) + ' hrs';
+      }
+    }
+
+    // Initialize buttons, load stored times, and display current date on page load
     window.onload = function() {
       initializeButtons();
+      loadTimes();
       displayCurrentDate();
     };
   </script>
